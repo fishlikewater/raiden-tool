@@ -20,6 +20,7 @@ import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
@@ -50,6 +51,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         Map<String, String> headMap = methodArgsBean.getHeadMap();
         Map<String, String> paramMap = MapUtil.newHashMap();
         Map<String, String> paramPath = MapUtil.newHashMap();
+        final HttpClient httpClient = HttpBootStrap.getHttpClient(methodArgsBean.getClassName());
         Object bodyObject = null;
         /* 构建请求参数*/
         if (ObjectUtil.isNotNull(parameters)) {
@@ -76,7 +78,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         if (method == HttpMethod.GET || method == HttpMethod.DELETE) {
             final HttpRequest.Builder builder = HttpRequest.newBuilder().GET().uri(URI.create(getRequestUrl(url, paramMap)));
             headMap.forEach(builder::header);
-            return convert(returnType, builder.build(), typeArgument, interceptor);
+            return convert(returnType, builder.build(), typeArgument, interceptor, httpClient);
         }
         if (method == HttpMethod.POST || method == HttpMethod.PUT) {
             if (requestEnum == RequestEnum.JSON) {
@@ -84,7 +86,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
                 final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
                 headMap.forEach(builder::header);
                 builder.header("Content-Type", "application/json;charset=utf-8");
-                return convert(returnType, builder.build(), typeArgument, interceptor);
+                return convert(returnType, builder.build(), typeArgument, interceptor, httpClient);
             }
             if (requestEnum == RequestEnum.FORM) {
                 HttpRequest.BodyPublisher requestBody = null;
@@ -101,7 +103,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
                 final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
                 headMap.forEach(builder::header);
                 builder.header("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
-                return convert(returnType, builder.build(), typeArgument, interceptor);
+                return convert(returnType, builder.build(), typeArgument, interceptor, httpClient);
             }
             if (requestEnum == RequestEnum.FILE) {
                 HttpRequest.BodyPublisher requestBody = null;
@@ -127,7 +129,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
                 final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
                 headMap.forEach(builder::header);
                 builder.header("Content-Type", "multipart/form-data");
-                return convert(returnType, builder.build(), typeArgument, interceptor);
+                return convert(returnType, builder.build(), typeArgument, interceptor, httpClient);
             }
 
         }
@@ -135,18 +137,18 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
     }
 
 
-    private Object convert(Class<?> returnType, HttpRequest httpRequest, Type typeArgument, HttpClientInterceptor interceptor) throws IOException, InterruptedException {
+    private Object convert(Class<?> returnType, HttpRequest httpRequest, Type typeArgument, HttpClientInterceptor interceptor, HttpClient httpClient) throws IOException, InterruptedException {
         if (Objects.nonNull(interceptor)){
             httpRequest = interceptor.requestBefore(httpRequest);
         }
         if (returnType.isAssignableFrom(CompletableFuture.class)){
             //异步
             if (typeArgument.getClass().isAssignableFrom(String.class)){
-                return HttpBootStrap.httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(res-> requestAfter(res, interceptor).body());
+                return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(res-> requestAfter(res, interceptor).body());
             }else if (typeArgument.getClass().isAssignableFrom(byte[].class)){
-                return HttpBootStrap.httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenApply(res-> requestAfter(res, interceptor).body());
+                return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenApply(res-> requestAfter(res, interceptor).body());
             }else {
-                return HttpBootStrap.httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(response->{
+                return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(response->{
                     final String body = response.body();
                     return gson.fromJson(body, TypeUtil.getClass(typeArgument));
                 });
@@ -154,13 +156,13 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         }else {
             //同步
             if (returnType.isAssignableFrom(String.class)){
-                final HttpResponse<String> response = HttpBootStrap.httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                final HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
                 return requestAfter(response, interceptor).body();
             } else if (returnType.isAssignableFrom(byte[].class)){
-                final HttpResponse<byte[]> response = HttpBootStrap.httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
+                final HttpResponse<byte[]> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
                 return requestAfter(response, interceptor).body();
             }else {
-                final HttpResponse<Object> response = HttpBootStrap.httpClient.send(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), returnType, gson));
+                final HttpResponse<Object> response = httpClient.send(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), returnType, gson));
                 return requestAfter(response, interceptor).body();
             }
         }

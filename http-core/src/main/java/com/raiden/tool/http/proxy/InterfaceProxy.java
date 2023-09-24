@@ -17,7 +17,8 @@ import java.lang.reflect.Method;
 public interface InterfaceProxy {
 
     default Object handler(Method method, Object[] args, HttpClientProcessor httpClientProcessor, HttpClientBeanFactory httpClientBeanFactory) {
-        final MethodArgsBean methodArgsBean = httpClientBeanFactory.getMethodArgsBean(method.getName());
+        String name = method.getDeclaringClass().getName() + "." + method.getName();
+        final MethodArgsBean methodArgsBean = httpClientBeanFactory.getMethodArgsBean(name);
         return httpClientProcessor.handler(methodArgsBean, args);
     }
 

@@ -48,6 +48,13 @@ public class HttpBootStrap {
 
     private HttpClientProcessor httpClientProcessor;
 
+
+    public static HttpClient getHttpClient(String className){
+
+
+        return httpClient;
+    }
+
     public <T> T getProxy(Class<T> tClass){
         return this.httpClientBeanFactory.getProxyObject(tClass);
     }

@@ -64,7 +64,9 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
             Arrays.stream(heads.value()).map(h -> h.split(":")).forEach(s -> headMap.put(s[0], s[1]));
         }
         final String requestUrl = getUrl(method, requireLine);
-        methodCache.put(method.getName(), new MethodArgsBean(method.getName(), httpClientInterceptor, requestMethodType, mediaType, headMap, requestUrl, parameters, returnType, typeArgument));
+        final String className = method.getDeclaringClass().getName();
+        String name = method.getDeclaringClass().getName() + "." + method.getName();
+        methodCache.put(name, new MethodArgsBean(className, method.getName(), httpClientInterceptor, requestMethodType, mediaType, headMap, requestUrl, parameters, returnType, typeArgument));
     }
 
     @Override

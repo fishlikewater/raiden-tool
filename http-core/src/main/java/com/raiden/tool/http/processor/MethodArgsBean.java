@@ -22,6 +22,8 @@ import java.util.Map;
 @AllArgsConstructor
 public class MethodArgsBean {
 
+    private String className;
+
     private String methodName;
 
     private HttpClientInterceptor interceptor;
