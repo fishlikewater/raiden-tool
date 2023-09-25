@@ -4,6 +4,7 @@ package com.raiden.tool.http.core.springboot;
 import com.raiden.tool.http.HttpBootStrap;
 import com.raiden.tool.http.core.springboot.annotaion.HttpScan;
 import com.raiden.tool.http.enums.ProxyEnum;
+import com.raiden.tool.http.log.LogConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanClassLoaderAware;
@@ -50,17 +51,21 @@ public class HttpServerScannerRegistrar implements ImportBeanDefinitionRegistrar
         if (attributes == null) {
             return;
         }
-        final Boolean enableLog = environment.getProperty("com.raiden.http.enableLog", boolean.class);
+        final Boolean enableLog = environment.getProperty("com.raiden.http.enable-log", boolean.class, false);
+        final LogConfig.LogLevel logLevel= environment.getProperty("com.raiden.http.log-level", LogConfig.LogLevel.class, LogConfig.LogLevel.BASIC);
         final ProxyEnum proxyType = environment.getProperty("com.raiden.http.proxy-type", ProxyEnum.class);
         // Specify the base package for scanning
         String[] basePackages = getPackagesToScan(attributes);
-        final HttpBootStrap httpBootStrap = HttpBootStrap.builder().build();
         try {
-            httpBootStrap.init(basePackages);
-        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            HttpBootStrap.init(basePackages);
+        } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        ClassPathRemoteServerScanner scanner = new ClassPathRemoteServerScanner(registry, classLoader, proxyType, httpBootStrap);
+        if (enableLog){
+            HttpBootStrap.getLogConfig().setEnableLog(true);
+            HttpBootStrap.getLogConfig().setLogLevel(logLevel);
+        }
+        ClassPathRemoteServerScanner scanner = new ClassPathRemoteServerScanner(registry, classLoader, proxyType);
 
         if (resourceLoader != null) {
             scanner.setResourceLoader(resourceLoader);

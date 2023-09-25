@@ -1,6 +1,7 @@
 package com.raiden.tool.http.core.springboot;
 
 import com.raiden.tool.http.enums.ProxyEnum;
+import com.raiden.tool.http.log.LogConfig;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -18,6 +19,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class HttpConfigProperties {
 
     private boolean enableLog;
+    private LogConfig.LogLevel logLevel;
 
 
     private ProxyEnum proxyType = ProxyEnum.JDK;

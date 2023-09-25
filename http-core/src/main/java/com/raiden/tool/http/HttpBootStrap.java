@@ -1,23 +1,25 @@
 package com.raiden.tool.http;
 
+import cn.hutool.core.lang.Assert;
 import com.raiden.tool.http.annotation.HttpServer;
 import com.raiden.tool.http.annotation.RequireLine;
-import com.raiden.tool.http.processor.DefaultHttpClientBeanFactory;
-import com.raiden.tool.http.processor.DefaultHttpClientProcessor;
-import com.raiden.tool.http.processor.HttpClientBeanFactory;
-import com.raiden.tool.http.processor.HttpClientProcessor;
+import com.raiden.tool.http.interceptor.HttpClientInterceptor;
+import com.raiden.tool.http.log.LogConfig;
+import com.raiden.tool.http.processor.*;
 import com.raiden.tool.http.proxy.InterfaceProxy;
 import com.raiden.tool.http.proxy.JdkInterfaceProxy;
-import io.github.classgraph.*;
-import lombok.Builder;
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Method;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -28,42 +30,70 @@ import java.util.Objects;
  * @author fishlikewater@126.com
  * @since 2023年09月24日 10:14
  **/
-@Setter
-@Getter
-@Builder
 @Slf4j
 @Accessors(chain = true)
 public class HttpBootStrap {
 
 
-    public static HttpClient httpClient;
+    private static SourceHttpClientRegistry registry;
 
-    private boolean enableLog;
+    @Getter
+    private static boolean selfManager;
 
-    private boolean selfManager;
+    @Getter
+    private static LogConfig logConfig = new LogConfig();
 
-    private InterfaceProxy interfaceProxy;
+    private static InterfaceProxy interfaceProxy;
 
-    private HttpClientBeanFactory httpClientBeanFactory;
+    @Getter
+    private static HttpClientBeanFactory httpClientBeanFactory;
 
-    private HttpClientProcessor httpClientProcessor;
+    @Getter
+    private static HttpClientProcessor httpClientProcessor;
 
+    public static void setHttpClientInterceptor(HttpClientInterceptor interceptor){
+        httpClientBeanFactory.setHttpClientInterceptor(interceptor);
+    }
+    public static void setSourceHttpClientRegistry(SourceHttpClientRegistry registry){
+        HttpBootStrap.registry = registry;
+    }
+
+    public static HttpClientInterceptor getHttpClientInterceptor(String className){
+        return httpClientBeanFactory.getInterceptor(className);
+    }
 
     public static HttpClient getHttpClient(String className){
 
-
-        return httpClient;
+        return registry.get(className);
     }
 
-    public <T> T getProxy(Class<T> tClass){
-        return this.httpClientBeanFactory.getProxyObject(tClass);
+    public static void setSelfManager(boolean selfManager){
+        HttpBootStrap.selfManager = selfManager;
     }
 
+    public static void registerHttpClient(String name, HttpClient httpClient){
+        Assert.notNull(registry, "请先调用init初始化...");
+        registry.register(name, httpClient);
+    }
 
-    public void init(String...packages) throws ClassNotFoundException, NoSuchMethodException {
+    public static <T> T getProxy(Class<T> tClass){
+        return httpClientBeanFactory.getProxyObject(tClass);
+    }
+
+    public static void registerDefaultHttpClient(){
+       registry = new SourceHttpClientRegistry(List.of(registry -> {
+           final HttpClient defaultClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60)).version(HttpClient.Version.HTTP_1_1).build();
+           registry.register("default", defaultClient);
+        }));
+    }
+
+    public static void init(String...packages) throws ClassNotFoundException {
 
         log.info("httpClient 接口开始初始化....");
-        HttpBootStrap.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60)).version(HttpClient.Version.HTTP_1_1).build();
+        if (selfManager){
+            registerDefaultHttpClient();
+            registry.init();
+        }
         if (Objects.isNull(httpClientBeanFactory)){
             httpClientBeanFactory = new DefaultHttpClientBeanFactory();
         }
@@ -96,7 +126,6 @@ public class HttpBootStrap {
             }
         }
         log.info("httpClient 接口初始化完成....");
-
     }
 
 }

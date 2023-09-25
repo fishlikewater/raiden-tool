@@ -27,13 +27,11 @@ public class ClassPathRemoteServerScanner extends ClassPathBeanDefinitionScanner
 
     private final ClassLoader classLoader;
     private final ProxyEnum proxyType;
-    private final HttpBootStrap httpBootStrap;
 
-    public ClassPathRemoteServerScanner(BeanDefinitionRegistry registry, ClassLoader classLoader, ProxyEnum proxyType, HttpBootStrap httpBootStrap) {
+    public ClassPathRemoteServerScanner(BeanDefinitionRegistry registry, ClassLoader classLoader, ProxyEnum proxyType) {
         super(registry, false);
         this.classLoader = classLoader;
         this.proxyType = proxyType;
-        this.httpBootStrap = httpBootStrap;
     }
 
     public void registerFilters() {
@@ -80,8 +78,8 @@ public class ClassPathRemoteServerScanner extends ClassPathBeanDefinitionScanner
                         + "' and '" + definition.getBeanClassName() + "' Interface");
             }
             definition.getPropertyValues().add("interfaceClass", definition.getBeanClassName());
-            definition.getPropertyValues().add("httpClientProcessor", httpBootStrap.getHttpClientProcessor());
-            definition.getPropertyValues().add("httpClientBeanFactory", httpBootStrap.getHttpClientBeanFactory());
+            definition.getPropertyValues().add("httpClientProcessor", HttpBootStrap.getHttpClientProcessor());
+            definition.getPropertyValues().add("httpClientBeanFactory", HttpBootStrap.getHttpClientBeanFactory());
             if (proxyType == ProxyEnum.JDK){
                 definition.setBeanClass(SpringJdkInterfaceProxy.class);
             }else {

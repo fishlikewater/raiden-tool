@@ -2,6 +2,7 @@ package com.raiden.http.core.springboot.test.interceptor;
 
 
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
+import org.springframework.stereotype.Component;
 
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
@@ -17,6 +18,7 @@ import java.util.Map;
  * @author fishlikewater@126.com
  * @since 2023年09月23日 13:41
  **/
+@Component
 public class MyInterceptor implements HttpClientInterceptor {
     @Override
     public HttpRequest requestBefore(HttpRequest httpRequest) {

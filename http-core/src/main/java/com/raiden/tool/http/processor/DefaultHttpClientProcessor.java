@@ -1,10 +1,11 @@
 package com.raiden.tool.http.processor;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.lang.Assert;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.StrFormatter;
 import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.TypeUtil;
-import com.google.gson.Gson;
+import cn.hutool.json.JSONUtil;
 import com.raiden.tool.http.HttpBootStrap;
 import com.raiden.tool.http.annotation.Body;
 import com.raiden.tool.http.annotation.Param;
@@ -12,6 +13,7 @@ import com.raiden.tool.http.annotation.PathParam;
 import com.raiden.tool.http.enums.HttpMethod;
 import com.raiden.tool.http.enums.RequestEnum;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
+import com.raiden.tool.http.log.LogInterceptor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,8 +38,8 @@ import java.util.concurrent.CompletableFuture;
  **/
 @Slf4j
 public class DefaultHttpClientProcessor implements HttpClientProcessor {
-    private static final Gson gson = new Gson();
 
+    private static final LogInterceptor logInterceptor = new LogInterceptor();
     @SneakyThrows(Throwable.class)
     @Override
     public Object handler(MethodArgsBean methodArgsBean, Object[] args) {
@@ -47,11 +49,12 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         String url = methodArgsBean.getRealUrl();
         final Class<?> returnType = methodArgsBean.getReturnType();
         final Type typeArgument = methodArgsBean.getTypeArgument();
-        final HttpClientInterceptor interceptor = methodArgsBean.getInterceptor();
+        final String interceptorClassName = methodArgsBean.getInterceptorClassName();
+        final HttpClientInterceptor interceptor = Objects.isNull(interceptorClassName) ? null : HttpBootStrap.getHttpClientInterceptor(interceptorClassName);
         Map<String, String> headMap = methodArgsBean.getHeadMap();
         Map<String, String> paramMap = MapUtil.newHashMap();
         Map<String, String> paramPath = MapUtil.newHashMap();
-        final HttpClient httpClient = HttpBootStrap.getHttpClient(methodArgsBean.getClassName());
+        final HttpClient httpClient = HttpBootStrap.getHttpClient(methodArgsBean.getSourceHttpClientName());
         Object bodyObject = null;
         /* 构建请求参数*/
         if (ObjectUtil.isNotNull(parameters)) {
@@ -71,7 +74,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
                     bodyObject = args[i];
                 }
             }
-            if (!paramPath.isEmpty()){
+            if (!paramPath.isEmpty()) {
                 url = StrFormatter.format(url, paramPath, true);
             }
         }
@@ -82,96 +85,126 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         }
         if (method == HttpMethod.POST || method == HttpMethod.PUT) {
             if (requestEnum == RequestEnum.JSON) {
-                HttpRequest.BodyPublisher requestBody = HttpRequest.BodyPublishers.ofString(gson.toJson(bodyObject));
-                final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
-                headMap.forEach(builder::header);
-                builder.header("Content-Type", "application/json;charset=utf-8");
-                return convert(returnType, builder.build(), typeArgument, interceptor, httpClient);
+                final HttpRequest httpRequest = handlerJson(bodyObject, headMap, url);
+                return convert(returnType, httpRequest, typeArgument, interceptor, httpClient);
             }
             if (requestEnum == RequestEnum.FORM) {
-                HttpRequest.BodyPublisher requestBody = null;
-                if (bodyObject != null) {
-                    StringBuilder params = new StringBuilder("rd=").append(Math.random());
-                    if (bodyObject instanceof Map<?, ?> map) {
-                        for (Map.Entry<?, ?> item : map.entrySet()) {
-                            String param = "&" + item.getKey().toString().trim() + "=" + item.getValue().toString().trim();
-                            params.append(param);
-                        }
-                    }
-                    requestBody = HttpRequest.BodyPublishers.ofString(params.toString());
-                }
-                final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
-                headMap.forEach(builder::header);
-                builder.header("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
-                return convert(returnType, builder.build(), typeArgument, interceptor, httpClient);
+                final HttpRequest httpRequest = handlerForm(bodyObject, headMap, url);
+                return convert(returnType, httpRequest, typeArgument, interceptor, httpClient);
             }
             if (requestEnum == RequestEnum.FILE) {
-                HttpRequest.BodyPublisher requestBody = null;
-                if (bodyObject != null) {
-                    if (bodyObject instanceof String filePath) {
-                        requestBody = HttpRequest.BodyPublishers.ofFile(Path.of(filePath));
-                    } else if (bodyObject instanceof byte[] bytes) {
-                        requestBody = HttpRequest.BodyPublishers.ofByteArray(bytes);
-                    } else if (bodyObject instanceof File file) {
-                        requestBody = HttpRequest.BodyPublishers.ofInputStream(() -> {
-                            try {
-                                return new FileInputStream(file);
-                            } catch (FileNotFoundException e) {
-
-                                log.error("文件不存在", e);
-                            }
-                            return null;
-                        });
-                    }else if (bodyObject instanceof InputStream inputStream){
-                        requestBody = HttpRequest.BodyPublishers.ofInputStream(()->inputStream);
-                    }
-                }
-                final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
-                headMap.forEach(builder::header);
-                builder.header("Content-Type", "multipart/form-data");
-                return convert(returnType, builder.build(), typeArgument, interceptor, httpClient);
+                final HttpRequest httpRequest = handlerFile(bodyObject, headMap, url);
+                return convert(returnType, httpRequest, typeArgument, interceptor, httpClient);
             }
 
         }
         return "";
     }
 
+    private HttpRequest handlerJson(Object bodyObject, Map<String, String> headMap, String url) {
+        HttpRequest.BodyPublisher requestBody = HttpRequest.BodyPublishers.ofString(JSONUtil.toJsonStr(bodyObject));
+        final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
+        headMap.forEach(builder::header);
+        builder.header("Content-Type", "application/json;charset=utf-8");
+        return builder.build();
+    }
 
-    private Object convert(Class<?> returnType, HttpRequest httpRequest, Type typeArgument, HttpClientInterceptor interceptor, HttpClient httpClient) throws IOException, InterruptedException {
-        if (Objects.nonNull(interceptor)){
-            httpRequest = interceptor.requestBefore(httpRequest);
-        }
-        if (returnType.isAssignableFrom(CompletableFuture.class)){
-            //异步
-            if (typeArgument.getClass().isAssignableFrom(String.class)){
-                return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(res-> requestAfter(res, interceptor).body());
-            }else if (typeArgument.getClass().isAssignableFrom(byte[].class)){
-                return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenApply(res-> requestAfter(res, interceptor).body());
+    private HttpRequest handlerForm(Object bodyObject, Map<String, String> headMap, String url) {
+        HttpRequest.BodyPublisher requestBody = null;
+        if (bodyObject != null) {
+            StringBuilder params = new StringBuilder("rd=").append(Math.random());
+            if (bodyObject instanceof Map<?, ?> map) {
+                for (Map.Entry<?, ?> item : map.entrySet()) {
+                    String param = "&" + item.getKey().toString().trim() + "=" + item.getValue().toString().trim();
+                    params.append(param);
+                }
             }else {
-                return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(response->{
-                    final String body = response.body();
-                    return gson.fromJson(body, TypeUtil.getClass(typeArgument));
+                final Map<String, Object> map = BeanUtil.beanToMap(bodyObject);
+                for (Map.Entry<?, ?> item : map.entrySet()) {
+                    String param = "&" + item.getKey().toString().trim() + "=" + item.getValue().toString().trim();
+                    params.append(param);
+                }
+            }
+            requestBody = HttpRequest.BodyPublishers.ofString(params.toString());
+        }
+        final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
+        headMap.forEach(builder::header);
+        builder.header("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
+        return builder.build();
+    }
+
+
+    private HttpRequest handlerFile(Object bodyObject, Map<String, String> headMap, String url) throws FileNotFoundException {
+        HttpRequest.BodyPublisher requestBody = null;
+        if (bodyObject != null) {
+            if (bodyObject instanceof String filePath) {
+                requestBody = HttpRequest.BodyPublishers.ofFile(Path.of(filePath));
+            }
+            if (bodyObject instanceof byte[] bytes) {
+                requestBody = HttpRequest.BodyPublishers.ofByteArray(bytes);
+            }
+            if (bodyObject instanceof File file) {
+                requestBody = HttpRequest.BodyPublishers.ofInputStream(() -> {
+                    try {
+                        return new FileInputStream(file);
+                    } catch (FileNotFoundException e) {
+                        log.error("文件不存在", e);
+                    }
+                    return null;
                 });
             }
-        }else {
+            if (bodyObject instanceof InputStream inputStream) {
+                requestBody = HttpRequest.BodyPublishers.ofInputStream(() -> inputStream);
+            }
+        }
+        Assert.notNull(requestBody, "未能正确构建请求体");
+        final HttpRequest.Builder builder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(url));
+        headMap.forEach(builder::header);
+        builder.header("Content-Type", "multipart/form-data");
+        return builder.build();
+    }
+
+
+    private Object convert(Class<?> returnType, HttpRequest httpRequest, Type typeArgument, HttpClientInterceptor interceptor, HttpClient httpClient) throws IOException, InterruptedException {
+        if (Objects.nonNull(interceptor)) {
+            httpRequest = interceptor.requestBefore(httpRequest);
+        }
+        if (HttpBootStrap.getLogConfig().isEnableLog()){
+            httpRequest = logInterceptor.requestBefore(httpRequest);
+        }
+        if (returnType.isAssignableFrom(CompletableFuture.class)) {
+            //异步
+            if (typeArgument.getClass().isAssignableFrom(String.class)) {
+                return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(res -> requestAfter(res, interceptor).body());
+            }
+            if (typeArgument.getClass().isAssignableFrom(byte[].class)) {
+                return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenApply(res -> requestAfter(res, interceptor).body());
+            }
+            return httpClient.sendAsync(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), returnType)).thenApply(res -> requestAfter(res, interceptor).body());
+
+        } else {
             //同步
-            if (returnType.isAssignableFrom(String.class)){
+            if (returnType.isAssignableFrom(String.class)) {
                 final HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
                 return requestAfter(response, interceptor).body();
-            } else if (returnType.isAssignableFrom(byte[].class)){
+            }
+            if (returnType.isAssignableFrom(byte[].class)) {
                 final HttpResponse<byte[]> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
                 return requestAfter(response, interceptor).body();
-            }else {
-                final HttpResponse<Object> response = httpClient.send(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), returnType, gson));
-                return requestAfter(response, interceptor).body();
             }
+            final HttpResponse<Object> response = httpClient.send(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), returnType));
+            return requestAfter(response, interceptor).body();
+
         }
     }
 
 
-    private <T> HttpResponse<T> requestAfter(HttpResponse<T> response, HttpClientInterceptor interceptor){
-        if (Objects.nonNull(interceptor)){
-            return interceptor.requestAfter(response);
+    private <T> HttpResponse<T> requestAfter(HttpResponse<T> response, HttpClientInterceptor interceptor) {
+        if (Objects.nonNull(interceptor)) {
+            response = interceptor.requestAfter(response);
+        }
+        if (HttpBootStrap.getLogConfig().isEnableLog()){
+            response = logInterceptor.requestAfter(response);
         }
         return response;
     }

@@ -2,6 +2,7 @@ package com.raiden.tool.http.processor;
 
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.TypeUtil;
+import com.raiden.tool.http.HttpBootStrap;
 import com.raiden.tool.http.annotation.Heads;
 import com.raiden.tool.http.annotation.HttpServer;
 import com.raiden.tool.http.annotation.Interceptor;
@@ -33,6 +34,7 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
 
     ConcurrentHashMap<String, MethodArgsBean> methodCache = new ConcurrentHashMap<>();
     ConcurrentHashMap<String, Object> proxyCache = new ConcurrentHashMap<>();
+    ConcurrentHashMap<String, HttpClientInterceptor> interceptorCache = new ConcurrentHashMap<>();
     String URL_SPLIT = "/";
 
     @SneakyThrows
@@ -49,8 +51,14 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
     @Override
     public void cacheMethod(Method method) {
         final Interceptor interceptor = method.getDeclaringClass().getAnnotation(Interceptor.class);
-        final Class<? extends HttpClientInterceptor> httpClientInterceptorClass = Objects.isNull(interceptor) ? null : interceptor.value();
-        final HttpClientInterceptor httpClientInterceptor = getInterceptor(httpClientInterceptorClass);
+        HttpServer httpServer = method.getDeclaringClass().getAnnotation(HttpServer.class);
+        String interceptorClassName = null;
+        if (Objects.nonNull(interceptor)){
+            interceptorClassName = interceptor.value().getName();
+            if (HttpBootStrap.isSelfManager()){
+                setHttpClientInterceptor(getInterceptor(interceptor.value()));
+            }
+        }
         final RequireLine requireLine = method.getAnnotation(RequireLine.class);
         final HttpMethod requestMethodType = requireLine.method();
         final RequestEnum mediaType = requireLine.mediaType();
@@ -63,10 +71,10 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         if (Objects.nonNull(heads)){
             Arrays.stream(heads.value()).map(h -> h.split(":")).forEach(s -> headMap.put(s[0], s[1]));
         }
-        final String requestUrl = getUrl(method, requireLine);
+        final String requestUrl = getUrl(httpServer, requireLine);
         final String className = method.getDeclaringClass().getName();
         String name = method.getDeclaringClass().getName() + "." + method.getName();
-        methodCache.put(name, new MethodArgsBean(className, method.getName(), httpClientInterceptor, requestMethodType, mediaType, headMap, requestUrl, parameters, returnType, typeArgument));
+        methodCache.put(name, new MethodArgsBean(className, method.getName(), httpServer.sourceHttpClient(), interceptorClassName, requestMethodType, mediaType, headMap, requestUrl, parameters, returnType, typeArgument));
     }
 
     @Override
@@ -80,9 +88,18 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         proxyCache.put(className, proxyObject);
     }
 
-    private String getUrl(Method method, RequireLine requireLine) {
+    @Override
+    public HttpClientInterceptor getInterceptor(String interceptorName) {
+        return interceptorCache.get(interceptorName);
+    }
+
+    @Override
+    public void setHttpClientInterceptor(HttpClientInterceptor httpClientInterceptor) {
+        interceptorCache.put(httpClientInterceptor.getClass().getName(), httpClientInterceptor);
+    }
+
+    private String getUrl(HttpServer httpServer, RequireLine requireLine) {
         String requestUrl;
-        HttpServer httpServer = method.getDeclaringClass().getAnnotation(HttpServer.class);
         String url = httpServer.url();
         if (!url.endsWith(URL_SPLIT)) {
             url += URL_SPLIT;

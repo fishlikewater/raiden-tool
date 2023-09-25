@@ -1,6 +1,7 @@
 package com.raiden.tool.http.core.springboot;
 
 import com.raiden.tool.http.HttpBootStrap;
+import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationListener;
@@ -22,8 +23,14 @@ public class HttpApplicationStartedEventListener implements ApplicationListener<
     public void onApplicationEvent(ApplicationStartedEvent  event) {
         log.info("检测是否有自定义httpClient注入");
         final String[] namesForType = event.getApplicationContext().getBeanNamesForType(HttpClient.class);
-        if (namesForType.length>=1){
-            HttpBootStrap.httpClient = (HttpClient)event.getApplicationContext().getBean(namesForType[0]);
+        if (namesForType.length>0){
+            final HttpClient httpClient = (HttpClient) event.getApplicationContext().getBean(namesForType[0]);
+            HttpBootStrap.registerHttpClient("default", httpClient);
+        }
+        final String[] interceptors = event.getApplicationContext().getBeanNamesForType(HttpClientInterceptor.class);
+        for (String interceptor : interceptors) {
+            final HttpClientInterceptor httpClientInterceptor = (HttpClientInterceptor) event.getApplicationContext().getBean(interceptor);
+            HttpBootStrap.setHttpClientInterceptor(httpClientInterceptor);
         }
     }
 }

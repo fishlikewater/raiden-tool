@@ -20,23 +20,14 @@ import java.util.Map;
 public class MyInterceptor implements HttpClientInterceptor {
     @Override
     public HttpRequest requestBefore(HttpRequest httpRequest) {
-        System.out.println(httpRequest.uri().getHost());
-        final HttpHeaders headers = httpRequest.headers();
-        final Map<String, List<String>> map = headers.map();
-        map.forEach((k, v)->{
-            System.out.println("head key: "+ k + " value: " + v);
-        });
+        System.out.println("自定义拦截器--请求");
+
         return httpRequest;
     }
 
     @Override
     public <T> HttpResponse<T> requestAfter(HttpResponse<T> response) {
-        System.out.println(response.statusCode());
-        final HttpHeaders headers = response.headers();
-        final Map<String, List<String>> map = headers.map();
-        map.forEach((k, v)->{
-            System.out.println("head key: "+ k + " value: " + v);
-        });
+        System.out.println("自定义拦截器--响应");
         return response;
     }
 }

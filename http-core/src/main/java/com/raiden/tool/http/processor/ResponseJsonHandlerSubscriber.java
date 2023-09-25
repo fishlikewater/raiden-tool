@@ -1,20 +1,18 @@
 package com.raiden.tool.http.processor;
 
-import com.google.gson.Gson;
+import cn.hutool.json.JSONUtil;
+import com.raiden.tool.http.uttils.ByteBufferUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.http.HttpHeaders;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * <p>
@@ -31,14 +29,12 @@ public class ResponseJsonHandlerSubscriber<T> implements HttpResponse.BodySubscr
     private final HttpHeaders headers;
 
     private final Class<?> clazz;
-    private final Gson gson;
 
     private final List<ByteBuffer> received = new ArrayList<>();
 
-    ResponseJsonHandlerSubscriber(HttpHeaders headers, Class<?> clazz, Gson gson){
+    ResponseJsonHandlerSubscriber(HttpHeaders headers, Class<?> clazz){
         this.headers = headers;
         this.clazz = clazz;
-        this.gson = gson;
     }
 
     @Override
@@ -58,7 +54,7 @@ public class ResponseJsonHandlerSubscriber<T> implements HttpResponse.BodySubscr
 
     @Override
     public void onNext(List<ByteBuffer> items) {
-        assert hasRemaining(items);
+        assert ByteBufferUtils.hasRemaining(items);
         received.addAll(items);
     }
 
@@ -71,60 +67,11 @@ public class ResponseJsonHandlerSubscriber<T> implements HttpResponse.BodySubscr
     @Override
     @SuppressWarnings("unchecked")
     public void onComplete() {
-        final byte[] bytes = join(received);
-        final Charset charset = charsetFrom(headers);
+        final byte[] bytes = ByteBufferUtils.join(received);
+        final Charset charset = ByteBufferUtils.charsetFrom(headers);
         final String jsonStr = new String(bytes, charset);
-        final Object bean = gson.fromJson(jsonStr, clazz);
+        final Object bean = JSONUtil.toBean(jsonStr, clazz);
         result.complete((T) bean);
-    }
-
-    private static byte[] join(List<ByteBuffer> bytes) {
-        int size = remaining(bytes);
-        byte[] res = new byte[size];
-        int from = 0;
-        for (ByteBuffer b : bytes) {
-            int l = b.remaining();
-            b.get(res, from, l);
-            from += l;
-        }
-        return res;
-    }
-
-    private static int remaining(List<ByteBuffer> buffs) {
-        long remain = 0;
-        for (ByteBuffer buf : buffs) {
-            remain += buf.remaining();
-            if (remain > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("too many bytes");
-            }
-        }
-        return (int) remain;
-    }
-
-
-    private boolean hasRemaining(List<ByteBuffer> buffs) {
-        for (ByteBuffer buf : buffs) {
-            if (buf.hasRemaining())
-                return true;
-        }
-        return false;
-    }
-    private static Charset charsetFrom(HttpHeaders headers) {
-        String type = headers.firstValue("Content-type")
-                .orElse("text/html; charset=utf-8");
-        int i = type.indexOf(";");
-        if (i >= 0) type = type.substring(i+1);
-        try {
-            Pattern pattern = Pattern.compile("charset=([a-zA-Z0-9-]+)");
-            Matcher matcher = pattern.matcher(type);
-            if (matcher.find()) {
-                return Charset.forName(matcher.group(1));
-            }
-            return StandardCharsets.UTF_8;
-        } catch (Throwable x) {
-            log.warn("Can't find charset in {} ", type, x);
-            return StandardCharsets.UTF_8;
-        }
     }
 
 }

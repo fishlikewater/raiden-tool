@@ -13,7 +13,7 @@ import httptest.MyInterceptor;
  * @author fishlikewater@126.com
  * @since 2023年09月23日 18:40
  **/
-@HttpServer(url = "www.baidu.com")
+@HttpServer(url = "www.baidu.com", sourceHttpClient = "third")
 @Interceptor(MyInterceptor.class)
 public interface HttpTest {
 

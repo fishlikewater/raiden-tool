@@ -2,7 +2,6 @@ package com.raiden.tool.http.processor;
 
 import com.raiden.tool.http.enums.HttpMethod;
 import com.raiden.tool.http.enums.RequestEnum;
-import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -26,7 +25,9 @@ public class MethodArgsBean {
 
     private String methodName;
 
-    private HttpClientInterceptor interceptor;
+    private String sourceHttpClientName;
+
+    private String interceptorClassName;
 
     private HttpMethod requestMethod;
 

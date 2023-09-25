@@ -1,5 +1,7 @@
 package com.raiden.tool.http.processor;
 
+import com.raiden.tool.http.interceptor.HttpClientInterceptor;
+
 import java.lang.reflect.Method;
 
 /**
@@ -21,4 +23,8 @@ public interface HttpClientBeanFactory {
 
 
     void cacheProxyObject(String className,  Object proxyObject);
+
+    HttpClientInterceptor getInterceptor(String interceptorName);
+
+    void setHttpClientInterceptor(HttpClientInterceptor httpClientInterceptor);
 }
