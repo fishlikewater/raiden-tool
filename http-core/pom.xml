@@ -22,6 +22,32 @@
         <gson.version>2.10.1</gson.version>
     </properties>
 
+    <url>https://github.com/fishlikewater/raiden-tool</url>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>https://github.com/fishlikewater/raiden-tool/master/LICENSE</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/fishlikewater/raiden-tool</url>
+        <connection>https://github.com/fishlikewater/raiden-tool.git</connection>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/fishlikewater/raiden-tool/issues</url>
+    </issueManagement>
+
+    <developers>
+        <developer>
+            <name>fish</name>
+            <email>fishlikewater@126.com</email>
+        </developer>
+    </developers>
+
     <dependencies>
         <dependency>
             <groupId>cn.hutool</groupId>
@@ -63,5 +89,36 @@
             <optional>true</optional>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!-- GPG -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--自动发布-->
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.13</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>oss</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
