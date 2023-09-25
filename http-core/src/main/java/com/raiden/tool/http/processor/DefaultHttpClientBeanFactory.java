@@ -56,7 +56,10 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         if (Objects.nonNull(interceptor)){
             interceptorClassName = interceptor.value().getName();
             if (HttpBootStrap.isSelfManager()){
-                setHttpClientInterceptor(getInterceptor(interceptor.value()));
+                final HttpClientInterceptor httpClientInterceptor = interceptorCache.get(interceptor.value().getName());
+                if (Objects.isNull(httpClientInterceptor)){
+                    setHttpClientInterceptor(getInterceptor(interceptor.value()));
+                }
             }
         }
         final RequireLine requireLine = method.getAnnotation(RequireLine.class);
