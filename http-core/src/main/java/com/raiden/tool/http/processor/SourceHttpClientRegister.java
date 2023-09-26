@@ -8,7 +8,7 @@ package com.raiden.tool.http.processor;
  * @author fishlikewater@126.com
  * @since 2023年09月23日 10:14
  **/
-public interface SourceHttpClientRegistrar {
+public interface SourceHttpClientRegister {
 
     /**
      * 向#{@link SourceHttpClientRegistry}注册数据

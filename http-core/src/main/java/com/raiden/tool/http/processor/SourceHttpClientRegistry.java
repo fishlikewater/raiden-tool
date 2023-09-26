@@ -18,9 +18,9 @@ public class SourceHttpClientRegistry {
 
     private final Map<String, HttpClient> httpClientMap;
 
-    private final List<SourceHttpClientRegistrar> registrars;
+    private final List<SourceHttpClientRegister> registrars;
 
-    public SourceHttpClientRegistry(List<SourceHttpClientRegistrar> registrars) {
+    public SourceHttpClientRegistry(List<SourceHttpClientRegister> registrars) {
         this.registrars = registrars;
         this.httpClientMap = new HashMap<>(4);
     }

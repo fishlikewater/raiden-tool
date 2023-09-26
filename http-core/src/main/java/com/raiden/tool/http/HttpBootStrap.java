@@ -38,6 +38,9 @@ public class HttpBootStrap {
     private static SourceHttpClientRegistry registry;
 
     @Getter
+    private static PredRequest predRequest;
+
+    @Getter
     private static boolean selfManager;
 
     @Getter
@@ -50,6 +53,10 @@ public class HttpBootStrap {
 
     @Getter
     private static HttpClientProcessor httpClientProcessor;
+
+    public static void setPredRequest(PredRequest predRequest){
+        HttpBootStrap.predRequest = predRequest;
+    }
 
     public static void setHttpClientInterceptor(HttpClientInterceptor interceptor){
         httpClientBeanFactory.setHttpClientInterceptor(interceptor);

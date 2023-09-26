@@ -13,10 +13,12 @@ import java.lang.annotation.*;
 public @interface HttpServer {
 
     /** 请求地址*/
-    String url();
+    String url() default "";
 
     /** 协议 http 或 https*/
     String protocol() default "http";
+
+    String serverName() default "";
 
     String sourceHttpClient() default "default";
 

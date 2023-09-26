@@ -3,11 +3,8 @@ package httptest;
 
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 
-import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.List;
-import java.util.Map;
 
 /**
  * <p>

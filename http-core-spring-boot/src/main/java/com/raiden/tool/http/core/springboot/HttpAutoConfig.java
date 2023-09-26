@@ -1,7 +1,7 @@
 package com.raiden.tool.http.core.springboot;
 
 import com.raiden.tool.http.HttpBootStrap;
-import com.raiden.tool.http.processor.SourceHttpClientRegistrar;
+import com.raiden.tool.http.processor.SourceHttpClientRegister;
 import com.raiden.tool.http.processor.SourceHttpClientRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ public class HttpAutoConfig {
 
 
     @Bean
-    public SourceHttpClientRegistrar sourceHttpClientRegistrar(){
+    public SourceHttpClientRegister sourceHttpClientRegister(){
         return (registry) -> {
             final HttpClient defaultClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(60)).version(HttpClient.Version.HTTP_1_1).build();
             registry.register("default", defaultClient);
@@ -41,8 +41,22 @@ public class HttpAutoConfig {
 
     @Bean
     @ConditionalOnMissingBean
+    public ServiceInstanceChooser retrofitServiceInstanceChooser() {
+        return new ServiceInstanceChooser.NoValidServiceInstanceChooser();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ServiceChoose serviceChoose(ServiceInstanceChooser serviceInstanceChooser){
+        final ServiceChoose serviceChoose = new ServiceChoose(serviceInstanceChooser);
+        HttpBootStrap.setPredRequest(serviceChoose);
+        return serviceChoose;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public SourceHttpClientRegistry sourceOkHttpClientRegistry(
-            @Autowired(required = false) List<SourceHttpClientRegistrar> sourceOkHttpClientRegistrars) {
+            @Autowired(required = false) List<SourceHttpClientRegister> sourceOkHttpClientRegistrars) {
         final SourceHttpClientRegistry sourceHttpClientRegistry = new SourceHttpClientRegistry(sourceOkHttpClientRegistrars);
         sourceHttpClientRegistry.init();
         HttpBootStrap.setSourceHttpClientRegistry(sourceHttpClientRegistry);

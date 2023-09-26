@@ -52,6 +52,7 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
     public void cacheMethod(Method method) {
         final Interceptor interceptor = method.getDeclaringClass().getAnnotation(Interceptor.class);
         HttpServer httpServer = method.getDeclaringClass().getAnnotation(HttpServer.class);
+        String serverName = httpServer.serverName();
         String interceptorClassName = null;
         if (Objects.nonNull(interceptor)){
             interceptorClassName = interceptor.value().getName();
@@ -77,7 +78,8 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         final String requestUrl = getUrl(httpServer, requireLine);
         final String className = method.getDeclaringClass().getName();
         String name = method.getDeclaringClass().getName() + "." + method.getName();
-        methodCache.put(name, new MethodArgsBean(className, method.getName(), httpServer.sourceHttpClient(), interceptorClassName, requestMethodType, mediaType, headMap, requestUrl, parameters, returnType, typeArgument));
+        methodCache.put(name, new MethodArgsBean(className, method.getName(), serverName, httpServer.sourceHttpClient(),
+                interceptorClassName, requestMethodType, mediaType, headMap, requestUrl, parameters, returnType, typeArgument));
     }
 
     @Override

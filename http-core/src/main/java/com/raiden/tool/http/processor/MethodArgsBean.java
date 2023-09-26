@@ -25,6 +25,8 @@ public class MethodArgsBean {
 
     private String methodName;
 
+    private String serverName;
+
     private String sourceHttpClientName;
 
     private String interceptorClassName;
@@ -35,7 +37,7 @@ public class MethodArgsBean {
 
     private Map<String, String> headMap;
 
-    private String realUrl;
+    private String url;
 
     private Parameter[] urlParameters;
 

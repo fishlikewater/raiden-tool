@@ -2,15 +2,9 @@ package com.raiden.tool.http.processor;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.Assert;
-import cn.hutool.core.map.MapUtil;
-import cn.hutool.core.text.StrFormatter;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.TypeUtil;
 import cn.hutool.json.JSONUtil;
 import com.raiden.tool.http.HttpBootStrap;
-import com.raiden.tool.http.annotation.Body;
-import com.raiden.tool.http.annotation.Param;
-import com.raiden.tool.http.annotation.PathParam;
 import com.raiden.tool.http.enums.HttpMethod;
 import com.raiden.tool.http.enums.RequestEnum;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
@@ -19,7 +13,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
-import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -43,42 +36,8 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
     private static final LogInterceptor logInterceptor = new LogInterceptor();
     @SneakyThrows(Throwable.class)
     @Override
-    public Object handler(MethodArgsBean methodArgsBean, Object[] args) {
-        HttpMethod method = methodArgsBean.getRequestMethod();
-        RequestEnum requestEnum = methodArgsBean.getMediaType();
-        final Parameter[] parameters = methodArgsBean.getUrlParameters();
-        String url = methodArgsBean.getRealUrl();
-        final Class<?> returnType = methodArgsBean.getReturnType();
-        final Type typeArgument = methodArgsBean.getTypeArgument();
-        final String interceptorClassName = methodArgsBean.getInterceptorClassName();
-        final HttpClientInterceptor interceptor = Objects.isNull(interceptorClassName) ? null : HttpBootStrap.getHttpClientInterceptor(interceptorClassName);
-        Map<String, String> headMap = methodArgsBean.getHeadMap();
-        Map<String, String> paramMap = MapUtil.newHashMap();
-        Map<String, String> paramPath = MapUtil.newHashMap();
-        final HttpClient httpClient = HttpBootStrap.getHttpClient(methodArgsBean.getSourceHttpClientName());
-        Object bodyObject = null;
-        /* 构建请求参数*/
-        if (ObjectUtil.isNotNull(parameters)) {
-            for (int i = 0; i < parameters.length; i++) {
-                Param param = parameters[i].getAnnotation(Param.class);
-                if (ObjectUtil.isNotNull(param)) {
-                    paramMap.put(param.value(), (String) args[i]);
-                    continue;
-                }
-                PathParam pathParam = parameters[i].getAnnotation(PathParam.class);
-                if (ObjectUtil.isNotNull(pathParam)) {
-                    paramPath.put(pathParam.value(), (String) args[i]);
-                    continue;
-                }
-                Body body = parameters[i].getAnnotation(Body.class);
-                if (ObjectUtil.isNotNull(body)) {
-                    bodyObject = args[i];
-                }
-            }
-            if (!paramPath.isEmpty()) {
-                url = StrFormatter.format(url, paramPath, true);
-            }
-        }
+    public Object handler(HttpMethod method, Map<String, String> headMap, Class<?> returnType, Type typeArgument, RequestEnum requestEnum,
+                          String url, Map<String, String> paramMap, Object bodyObject, HttpClientInterceptor interceptor, HttpClient httpClient) {
         if (method == HttpMethod.GET || method == HttpMethod.DELETE) {
             final HttpRequest.Builder builder = HttpRequest.newBuilder().GET().uri(URI.create(getRequestUrl(url, paramMap)));
             headMap.forEach(builder::header);
