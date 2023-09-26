@@ -53,7 +53,7 @@ public class HttpServerScannerRegistrar implements ImportBeanDefinitionRegistrar
         }
         final Boolean enableLog = environment.getProperty("com.raiden.http.enable-log", boolean.class, false);
         final LogConfig.LogLevel logLevel= environment.getProperty("com.raiden.http.log-level", LogConfig.LogLevel.class, LogConfig.LogLevel.BASIC);
-        final ProxyEnum proxyType = environment.getProperty("com.raiden.http.proxy-type", ProxyEnum.class);
+        final ProxyEnum proxyType = environment.getProperty("com.raiden.http.proxy-type", ProxyEnum.class, ProxyEnum.JDK);
         // Specify the base package for scanning
         String[] basePackages = getPackagesToScan(attributes);
         try {

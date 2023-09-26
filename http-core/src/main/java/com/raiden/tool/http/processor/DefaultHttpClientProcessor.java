@@ -5,6 +5,7 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.StrFormatter;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.TypeUtil;
 import cn.hutool.json.JSONUtil;
 import com.raiden.tool.http.HttpBootStrap;
 import com.raiden.tool.http.annotation.Body;
@@ -180,7 +181,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
             if (typeArgument.getClass().isAssignableFrom(byte[].class)) {
                 return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenApply(res -> requestAfter(res, interceptor).body());
             }
-            return httpClient.sendAsync(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), returnType)).thenApply(res -> requestAfter(res, interceptor).body());
+            return httpClient.sendAsync(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), TypeUtil.getClass(typeArgument))).thenApply(res -> requestAfter(res, interceptor).body());
 
         } else {
             //同步
