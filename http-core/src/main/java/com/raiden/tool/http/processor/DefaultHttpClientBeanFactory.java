@@ -3,12 +3,8 @@ package com.raiden.tool.http.processor;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.TypeUtil;
 import com.raiden.tool.http.HttpBootStrap;
-import com.raiden.tool.http.annotation.Heads;
-import com.raiden.tool.http.annotation.HttpServer;
-import com.raiden.tool.http.annotation.Interceptor;
-import com.raiden.tool.http.annotation.RequireLine;
+import com.raiden.tool.http.annotation.*;
 import com.raiden.tool.http.enums.HttpMethod;
-import com.raiden.tool.http.enums.RequestEnum;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -64,8 +60,9 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
             }
         }
         final RequireLine requireLine = method.getAnnotation(RequireLine.class);
+        final Form form = method.getAnnotation(Form.class);
         final HttpMethod requestMethodType = requireLine.method();
-        final RequestEnum mediaType = requireLine.mediaType();
+        boolean isForm = Objects.nonNull(form);
         final Class<?> returnType = method.getReturnType();
         final Type returnType1 = TypeUtil.getReturnType(method);
         final Type typeArgument = TypeUtil.getTypeArgument(returnType1);
@@ -79,7 +76,7 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         final String className = method.getDeclaringClass().getName();
         String name = method.getDeclaringClass().getName() + "." + method.getName();
         methodCache.put(name, new MethodArgsBean(className, method.getName(), serverName, httpServer.sourceHttpClient(),
-                interceptorClassName, requestMethodType, mediaType, headMap, requestUrl, parameters, returnType, typeArgument));
+                interceptorClassName, requestMethodType, isForm, headMap, requestUrl, parameters, returnType, typeArgument));
     }
 
     @Override

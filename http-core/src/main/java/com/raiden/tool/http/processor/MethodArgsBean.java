@@ -1,7 +1,6 @@
 package com.raiden.tool.http.processor;
 
 import com.raiden.tool.http.enums.HttpMethod;
-import com.raiden.tool.http.enums.RequestEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -33,7 +32,7 @@ public class MethodArgsBean {
 
     private HttpMethod requestMethod;
 
-    private RequestEnum mediaType;
+    private boolean isForm;
 
     private Map<String, String> headMap;
 

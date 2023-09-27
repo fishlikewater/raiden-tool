@@ -8,7 +8,7 @@ import com.raiden.tool.http.annotation.Body;
 import com.raiden.tool.http.annotation.Param;
 import com.raiden.tool.http.annotation.PathParam;
 import com.raiden.tool.http.enums.HttpMethod;
-import com.raiden.tool.http.enums.RequestEnum;
+import com.raiden.tool.http.file.MultipartData;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 import com.raiden.tool.http.processor.HttpClientBeanFactory;
 import com.raiden.tool.http.processor.HttpClientProcessor;
@@ -38,7 +38,7 @@ public interface InterfaceProxy {
             HttpBootStrap.getPredRequest().handler(methodArgsBean);
         }
         HttpMethod httpMethod = methodArgsBean.getRequestMethod();
-        RequestEnum requestEnum = methodArgsBean.getMediaType();
+        final boolean form = methodArgsBean.isForm();
         final Parameter[] parameters = methodArgsBean.getUrlParameters();
         String url = methodArgsBean.getUrl();
         final Class<?> returnType = methodArgsBean.getReturnType();
@@ -50,6 +50,7 @@ public interface InterfaceProxy {
         Map<String, String> paramPath = MapUtil.newHashMap();
         final HttpClient httpClient = HttpBootStrap.getHttpClient(methodArgsBean.getSourceHttpClientName());
         Object bodyObject = null;
+        MultipartData multipartData = null;
         /* 构建请求参数*/
         if (ObjectUtil.isNotNull(parameters)) {
             for (int i = 0; i < parameters.length; i++) {
@@ -66,13 +67,18 @@ public interface InterfaceProxy {
                 Body body = parameters[i].getAnnotation(Body.class);
                 if (ObjectUtil.isNotNull(body)) {
                     bodyObject = args[i];
+                    continue;
+                }
+                if (args[i] instanceof MultipartData mData){
+                    multipartData = mData;
                 }
             }
             if (!paramPath.isEmpty()) {
                 url = StrFormatter.format(url, paramPath, true);
             }
         }
-        return httpClientProcessor.handler(httpMethod, headMap, returnType, typeArgument, requestEnum, url,  paramMap,  bodyObject,  interceptor,  httpClient);
+        return httpClientProcessor.handler(httpMethod, headMap, returnType, typeArgument, form, url,  paramMap,
+                bodyObject,  interceptor,  multipartData, httpClient);
     }
 
     <T> T getInstance(Class<T> interfaceClass);

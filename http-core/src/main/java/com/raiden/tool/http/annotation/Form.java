@@ -1,7 +1,5 @@
 package com.raiden.tool.http.annotation;
 
-import com.raiden.tool.http.enums.HttpMethod;
-
 import java.lang.annotation.*;
 
 /**
@@ -12,13 +10,6 @@ import java.lang.annotation.*;
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface RequireLine {
-
-    /** 请求方式 默认GET*/
-    HttpMethod method() default HttpMethod.GET;
-
-    /** 请求路径*/
-    String path() default "";
-
+public @interface Form {
 
 }

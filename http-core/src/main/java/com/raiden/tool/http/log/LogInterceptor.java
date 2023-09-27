@@ -26,7 +26,7 @@ import java.util.concurrent.Flow;
 public class LogInterceptor implements HttpClientInterceptor {
     @Override
     public HttpRequest requestBefore(HttpRequest httpRequest) {
-        log.info("=====================================请求头==========================================");
+        log.info("=====================================begin==========================================");
         final LogConfig.LogLevel logLevel = HttpBootStrap.getLogConfig().getLogLevel();
         final HttpHeaders headers = httpRequest.headers();
         log.info("请求地址: {}", httpRequest.uri().toString());
@@ -71,13 +71,12 @@ public class LogInterceptor implements HttpClientInterceptor {
                 });
             });
         }
-        log.info("=======================================END===========================================");
         return httpRequest;
     }
 
     @Override
     public <T> HttpResponse<T> requestAfter(HttpResponse<T> response) {
-        log.info("=====================================响应头==========================================");
+        log.info("响应信息: ");
         final LogConfig.LogLevel logLevel = HttpBootStrap.getLogConfig().getLogLevel();
         final int state = response.statusCode();
         log.info("{}<-{}", state, response.uri().toString());
@@ -96,9 +95,7 @@ public class LogInterceptor implements HttpClientInterceptor {
     private void recordHeads(LogConfig.LogLevel logLevel, HttpHeaders headers) {
         if (logLevel == LogConfig.LogLevel.HEADS || logLevel == LogConfig.LogLevel.DETAIL){
             final Map<String, List<String>> map = headers.map();
-            map.forEach((k, v)->{
-                log.info("{}: {}", k, v);
-            });
+            map.forEach((k, v)-> log.info("{}: {}", k, v));
         }
     }
 }
