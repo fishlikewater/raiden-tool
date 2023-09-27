@@ -78,19 +78,13 @@ public class MultiFileBodyProvider implements HttpRequest.BodyPublisher{
                 final FileReader fileReader = new FileReader(file);
                 final byte[] readBytes = fileReader.readBytes();
                 final ByteBuffer buffers = copy2(readBytes, readBytes.length);
-                subscriber.onSubscribe(new Flow.Subscription() {
+                final Flow.Publisher<ByteBuffer> publisher = new Flow.Publisher<>() {
                     @Override
-                    public void request(long n) {
+                    public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
                         subscriber.onNext(buffers);
                     }
-
-                    @Override
-                    public void cancel() {
-
-                    }
-                });
-                subscriber.onComplete();
-
+                };
+                publisher.subscribe(subscriber);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
