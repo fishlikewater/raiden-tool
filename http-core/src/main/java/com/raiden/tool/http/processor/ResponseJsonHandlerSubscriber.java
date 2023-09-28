@@ -70,7 +70,12 @@ public class ResponseJsonHandlerSubscriber<T> implements HttpResponse.BodySubscr
         final byte[] bytes = ByteBufferUtils.join(received);
         final Charset charset = ByteBufferUtils.charsetFrom(headers);
         final String jsonStr = new String(bytes, charset);
-        final Object bean = JSONUtil.toBean(jsonStr, clazz);
+        Object bean;
+        if (clazz.isAssignableFrom(String.class) || clazz.isAssignableFrom(Number.class)){
+            bean = jsonStr;
+        }else {
+            bean = JSONUtil.toBean(jsonStr, clazz);
+        }
         result.complete((T) bean);
     }
 

@@ -14,7 +14,7 @@
     </modules>
 
     <properties>
-        <raiden.version>1.0.SNAPSHOT</raiden.version>
+        <raiden.version>1.0.0</raiden.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
