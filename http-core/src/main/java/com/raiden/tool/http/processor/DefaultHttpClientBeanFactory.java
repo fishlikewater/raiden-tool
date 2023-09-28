@@ -108,7 +108,7 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         if (Objects.nonNull(heads)){
             Arrays.stream(heads.value()).map(h -> h.split(":")).forEach(s -> headMap.put(s[0], s[1]));
         }
-        final String requestUrl = getUrl(httpServer, path);
+        final String requestUrl = path.startsWith("http")?path:getUrl(httpServer.protocol(), httpServer.url(), path);
         final String className = method.getDeclaringClass().getName();
         String name = method.getDeclaringClass().getName() + "." + method.getName();
         methodCache.put(name, new MethodArgsBean(className, method.getName(), serverName, httpServer.sourceHttpClient(),
@@ -136,16 +136,15 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         interceptorCache.put(httpClientInterceptor.getClass().getName(), httpClientInterceptor);
     }
 
-    private String getUrl(HttpServer httpServer, String path) {
+    private String getUrl(String protocol, String url, String path) {
         String requestUrl;
-        String url = httpServer.url();
         if (!url.endsWith(URL_SPLIT)) {
             url += URL_SPLIT;
         }
         if (url.startsWith("http")) {
             requestUrl = url;
         } else {
-            requestUrl = httpServer.protocol() + "://" + url;
+            requestUrl = protocol + "://" + url;
         }
         if (path.startsWith(URL_SPLIT)) {
             path = path.substring(1);
