@@ -9,6 +9,7 @@ import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
@@ -46,6 +47,45 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
 
     @Override
     public void cacheMethod(Method method) {
+
+        HttpMethod requestMethodType = null;
+        boolean isForm = false;
+        boolean isContinue = false;
+        String path = "";
+        final Annotation[] annotations = method.getAnnotations();
+        for (Annotation annotation : annotations) {
+            if (annotation instanceof Form){
+                isForm = true;
+            }
+            if (annotation instanceof RequireLine requireLine){
+                requestMethodType = requireLine.method();
+                path = requireLine.path();
+                isContinue = true;
+            }
+            if (annotation instanceof GET get){
+                requestMethodType = HttpMethod.GET;
+                path = get.value();
+                isContinue = true;
+            }
+            if (annotation instanceof POST post){
+                requestMethodType = HttpMethod.POST;
+                path = post.value();
+                isContinue = true;
+            }
+            if (annotation instanceof PUT put){
+                requestMethodType = HttpMethod.PUT;
+                path = put.value();
+                isContinue = true;
+            }
+            if (annotation instanceof DELETE delete){
+                requestMethodType = HttpMethod.DELETE;
+                path = delete.value();
+                isContinue = true;
+            }
+        }
+        if (!isContinue){
+            return;
+        }
         final Interceptor interceptor = method.getDeclaringClass().getAnnotation(Interceptor.class);
         HttpServer httpServer = method.getDeclaringClass().getAnnotation(HttpServer.class);
         String serverName = httpServer.serverName();
@@ -59,10 +99,6 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
                 }
             }
         }
-        final RequireLine requireLine = method.getAnnotation(RequireLine.class);
-        final Form form = method.getAnnotation(Form.class);
-        final HttpMethod requestMethodType = requireLine.method();
-        boolean isForm = Objects.nonNull(form);
         final Class<?> returnType = method.getReturnType();
         final Type returnType1 = TypeUtil.getReturnType(method);
         final Type typeArgument = TypeUtil.getTypeArgument(returnType1);
@@ -72,7 +108,7 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         if (Objects.nonNull(heads)){
             Arrays.stream(heads.value()).map(h -> h.split(":")).forEach(s -> headMap.put(s[0], s[1]));
         }
-        final String requestUrl = getUrl(httpServer, requireLine);
+        final String requestUrl = getUrl(httpServer, path);
         final String className = method.getDeclaringClass().getName();
         String name = method.getDeclaringClass().getName() + "." + method.getName();
         methodCache.put(name, new MethodArgsBean(className, method.getName(), serverName, httpServer.sourceHttpClient(),
@@ -100,7 +136,7 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         interceptorCache.put(httpClientInterceptor.getClass().getName(), httpClientInterceptor);
     }
 
-    private String getUrl(HttpServer httpServer, RequireLine requireLine) {
+    private String getUrl(HttpServer httpServer, String path) {
         String requestUrl;
         String url = httpServer.url();
         if (!url.endsWith(URL_SPLIT)) {
@@ -111,7 +147,6 @@ public class DefaultHttpClientBeanFactory implements HttpClientBeanFactory {
         } else {
             requestUrl = httpServer.protocol() + "://" + url;
         }
-        String path = requireLine.path();
         if (path.startsWith(URL_SPLIT)) {
             path = path.substring(1);
         }

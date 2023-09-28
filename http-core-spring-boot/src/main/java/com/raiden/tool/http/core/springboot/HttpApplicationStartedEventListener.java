@@ -21,7 +21,6 @@ public class HttpApplicationStartedEventListener implements ApplicationListener<
 
     @Override
     public void onApplicationEvent(ApplicationStartedEvent  event) {
-        log.info("检测是否有自定义httpClient注入");
         final String[] namesForType = event.getApplicationContext().getBeanNamesForType(HttpClient.class);
         if (namesForType.length>0){
             final HttpClient httpClient = (HttpClient) event.getApplicationContext().getBean(namesForType[0]);
