@@ -141,11 +141,11 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
 
 
     private <T> HttpResponse<T> requestAfter(HttpResponse<T> response, HttpClientInterceptor interceptor) {
-        if (Objects.nonNull(interceptor)) {
-            response = interceptor.requestAfter(response);
-        }
         if (HttpBootStrap.getLogConfig().isEnableLog()){
             response = logInterceptor.requestAfter(response);
+        }
+        if (Objects.nonNull(interceptor)) {
+            response = interceptor.requestAfter(response);
         }
         return response;
     }
