@@ -1,8 +1,8 @@
 package com.raiden.tool.http.core.springboot;
 
 import com.raiden.tool.http.HttpBootStrap;
-import com.raiden.tool.http.processor.SourceHttpClientRegister;
-import com.raiden.tool.http.processor.SourceHttpClientRegistry;
+import com.raiden.tool.http.source.SourceHttpClientRegister;
+import com.raiden.tool.http.source.SourceHttpClientRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;

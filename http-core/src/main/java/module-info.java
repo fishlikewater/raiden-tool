@@ -18,6 +18,10 @@ module com.raiden.tool.http {
     exports com.raiden.tool.http;
     exports com.raiden.tool.http.enums;
     exports com.raiden.tool.http.proxy;
-    exports com.raiden.tool.http.processor;
     exports com.raiden.tool.http.annotation;
+    exports com.raiden.tool.http.interceptor;
+    exports com.raiden.tool.http.file;
+    exports com.raiden.tool.http.log;
+    exports com.raiden.tool.http.source;
+    exports com.raiden.tool.http.processor;
 }

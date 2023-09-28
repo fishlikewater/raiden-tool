@@ -1,8 +1,8 @@
 package com.raiden.tool.http.core.springboot;
 
 import cn.hutool.core.util.StrUtil;
+import com.raiden.tool.http.interceptor.PredRequest;
 import com.raiden.tool.http.processor.MethodArgsBean;
-import com.raiden.tool.http.processor.PredRequest;
 import lombok.RequiredArgsConstructor;
 
 import java.net.URI;
