@@ -8,7 +8,6 @@ import com.raiden.tool.http.file.MultipartData;
 import java.io.File;
 import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Flow;
@@ -24,14 +23,14 @@ import java.util.stream.Collectors;
 public class MultiFileBodyProvider implements HttpRequest.BodyPublisher {
 
     private final String boundary;
-
-    private long contentLength;
-
-    private final byte[] allBytes;
+    private long contentLength = 0L;
+    private final byte[] paramByte;
+    private final byte[] endBytes;
+    private final List<Path> paths;
+    private final List<byte[]> fileParams = new ArrayList<>();
 
 
     public MultiFileBodyProvider(MultipartData multipartData, Object paramObj, String boundaryString) {
-        List<Path> paths;
         if (Objects.nonNull(multipartData.getPaths()) && multipartData.getPaths().length > 0) {
             paths = Arrays.stream(multipartData.getPaths()).map(Path::of).collect(Collectors.toList());
         } else {
@@ -46,8 +45,8 @@ public class MultiFileBodyProvider implements HttpRequest.BodyPublisher {
                 paramData.append("Content-Disposition: form-data; name=\"").append(k).append("\"\r\n\r\n").append(v).append("\r\n");
             });
         }
-        byte[] paramByte = paramData.toString().getBytes();
-        List<byte[]> byteList = new ArrayList<>();
+        paramByte = paramData.toString().getBytes();
+        contentLength += paramByte.length;
         for (Path path : paths) {
             try {
                 final File file = FileUtil.file(path.toFile());
@@ -55,31 +54,15 @@ public class MultiFileBodyProvider implements HttpRequest.BodyPublisher {
                         "Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"\r\n" +
                         "Content-Type: application/octet-stream\r\n\r\n";
                 final byte[] bytes = fileData.getBytes();
-                final FileReader fileReader = new FileReader(file);
-                final byte[] readBytes = fileReader.readBytes();
-                byte[] fullData = new byte[readBytes.length + bytes.length];
-                System.arraycopy(bytes, 0, fullData, 0, bytes.length);
-                System.arraycopy(readBytes, 0, fullData, bytes.length, readBytes.length);
-                byteList.add(fullData);
+                fileParams.add(bytes);
+                contentLength += bytes.length;
+                contentLength += file.length();
             } catch (Exception e) {
                 throw new RuntimeException("构建文件数据异常", e);
             }
-
         }
-        byte[] endString = ("\r\n--" + boundary + "--").getBytes();
-        for (byte[] bytes : byteList) {
-            contentLength += bytes.length;
-        }
-        contentLength += paramByte.length + endString.length;
-        int flag = 0;
-        allBytes = new byte[(int) contentLength];
-        System.arraycopy(paramByte, 0, allBytes, flag, paramByte.length);
-        flag = paramByte.length;
-        for (byte[] bytes : byteList) {
-            System.arraycopy(bytes, 0, allBytes, flag, bytes.length);
-            flag += bytes.length;
-        }
-        System.arraycopy(endString, 0, allBytes, flag, endString.length);
+        endBytes = ("\r\n--" + boundary + "--").getBytes();
+        contentLength += endBytes.length;
     }
 
     @Override
@@ -91,7 +74,19 @@ public class MultiFileBodyProvider implements HttpRequest.BodyPublisher {
     public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
         final SubmissionPublisher<ByteBuffer> submissionPublisher = new SubmissionPublisher<>();
         submissionPublisher.subscribe(subscriber);
-        final ByteBuffer endBuffer = copy2(allBytes, allBytes.length);
+        final ByteBuffer paramBuffer = copy2(paramByte, paramByte.length);
+        submissionPublisher.submit(paramBuffer);
+        int i = 0;
+        for (Path path : paths) {
+            final byte[] bytes = fileParams.get(i);
+            submissionPublisher.submit(copy2(bytes, bytes.length));
+            final File file = FileUtil.file(path.toFile());
+            final FileReader fileReader = new FileReader(file);
+            final byte[] readBytes = fileReader.readBytes();
+            submissionPublisher.submit(copy2(readBytes, readBytes.length));
+            i++;
+        }
+        final ByteBuffer endBuffer = copy2(endBytes, endBytes.length);
         submissionPublisher.submit(endBuffer);
         submissionPublisher.close();
     }
@@ -102,15 +97,4 @@ public class MultiFileBodyProvider implements HttpRequest.BodyPublisher {
         b.flip();
         return b;
     }
-
-    List<ByteBuffer> copy(byte[] content, int length) {
-        List<ByteBuffer> buffs = new ArrayList<>();
-        ByteBuffer b = ByteBuffer.allocate(length);
-        b.put(content, 0, length);
-        b.flip();
-        buffs.add(b);
-        return buffs;
-    }
-
-
 }
