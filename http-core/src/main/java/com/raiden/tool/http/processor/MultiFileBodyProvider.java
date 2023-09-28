@@ -6,13 +6,13 @@ import cn.hutool.core.io.file.FileReader;
 import com.raiden.tool.http.file.MultipartData;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Flow;
+import java.util.concurrent.SubmissionPublisher;
 import java.util.stream.Collectors;
 
 /**
@@ -21,34 +21,65 @@ import java.util.stream.Collectors;
  * @author fishlikewater@126.com
  * @since 2023年09月27日 9:38
  **/
-public class MultiFileBodyProvider implements HttpRequest.BodyPublisher{
+public class MultiFileBodyProvider implements HttpRequest.BodyPublisher {
 
     private final String boundary;
 
-    private final long contentLength;
+    private long contentLength;
 
-    private final byte[] paramByte;
-
-    private final List<Path> paths;
+    private final byte[] allBytes;
 
 
-    public MultiFileBodyProvider(MultipartData multipartData, Object paramObj){
-        if (Objects.nonNull(multipartData.getPaths()) && multipartData.getPaths().length>0){
+    public MultiFileBodyProvider(MultipartData multipartData, Object paramObj, String boundaryString) {
+        List<Path> paths;
+        if (Objects.nonNull(multipartData.getPaths()) && multipartData.getPaths().length > 0) {
             paths = Arrays.stream(multipartData.getPaths()).map(Path::of).collect(Collectors.toList());
-        }else {
+        } else {
             paths = Arrays.stream(multipartData.getFiles()).map(file -> Path.of(file.getPath())).collect(Collectors.toList());
         }
-        this.boundary = boundaryString();
+        this.boundary = boundaryString;
         StringBuilder paramData = new StringBuilder();
-        if (Objects.nonNull(paramObj)){
+        if (Objects.nonNull(paramObj)) {
             Map<String, Object> paramMap = BeanUtil.beanToMap(paramObj);
-            paramMap.forEach((k, v)->{
+            paramMap.forEach((k, v) -> {
                 paramData.append("--").append(boundary).append("\r\n");
                 paramData.append("Content-Disposition: form-data; name=\"").append(k).append("\"\r\n\r\n").append(v).append("\r\n");
             });
         }
-        paramByte = paramData.toString().getBytes();
-        contentLength = fileSize() + paramByte.length;
+        byte[] paramByte = paramData.toString().getBytes();
+        List<byte[]> byteList = new ArrayList<>();
+        for (Path path : paths) {
+            try {
+                final File file = FileUtil.file(path.toFile());
+                String fileData = "--" + boundary + "\r\n" +
+                        "Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"\r\n" +
+                        "Content-Type: application/octet-stream\r\n\r\n";
+                final byte[] bytes = fileData.getBytes();
+                final FileReader fileReader = new FileReader(file);
+                final byte[] readBytes = fileReader.readBytes();
+                byte[] fullData = new byte[readBytes.length + bytes.length];
+                System.arraycopy(bytes, 0, fullData, 0, bytes.length);
+                System.arraycopy(readBytes, 0, fullData, bytes.length, readBytes.length);
+                byteList.add(fullData);
+            } catch (Exception e) {
+                throw new RuntimeException("构建文件数据异常", e);
+            }
+
+        }
+        byte[] endString = ("\r\n--" + boundary + "--").getBytes();
+        for (byte[] bytes : byteList) {
+            contentLength += bytes.length;
+        }
+        contentLength += paramByte.length + endString.length;
+        int flag = 0;
+        allBytes = new byte[(int) contentLength];
+        System.arraycopy(paramByte, 0, allBytes, flag, paramByte.length);
+        flag = paramByte.length;
+        for (byte[] bytes : byteList) {
+            System.arraycopy(bytes, 0, allBytes, flag, bytes.length);
+            flag += bytes.length;
+        }
+        System.arraycopy(endString, 0, allBytes, flag, endString.length);
     }
 
     @Override
@@ -58,38 +89,11 @@ public class MultiFileBodyProvider implements HttpRequest.BodyPublisher{
 
     @Override
     public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
-        final List<ByteBuffer> paramBuf = copy(paramByte, paramByte.length);
-        for (ByteBuffer byteBuffer : paramBuf) {
-            subscriber.onNext(byteBuffer);
-        }
-        for (Path path : paths) {
-            try {
-                final String name = Files.getFileStore(path).name();
-                String fileData = "--" + boundary + "\r\n" +
-                        "Content-Disposition: form-data; name=\"file\"; filename=\"" + name + "\"\r\n" +
-                        "Content-Type: application/octet-stream\r\n\r\n";
-                final byte[] bytes = fileData.getBytes();
-                final List<ByteBuffer> fileParam = copy(bytes,  bytes.length);
-                for (ByteBuffer byteBuffer : fileParam) {
-                    subscriber.onNext(byteBuffer);
-                }
-                //ByteBuffer buffer = ByteBuffer.allocate(8192); // 8KB缓冲区
-                final File file = FileUtil.file(path.toFile());
-                final FileReader fileReader = new FileReader(file);
-                final byte[] readBytes = fileReader.readBytes();
-                final ByteBuffer buffers = copy2(readBytes, readBytes.length);
-                final Flow.Publisher<ByteBuffer> publisher = new Flow.Publisher<>() {
-                    @Override
-                    public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
-                        subscriber.onNext(buffers);
-                    }
-                };
-                publisher.subscribe(subscriber);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
+        final SubmissionPublisher<ByteBuffer> submissionPublisher = new SubmissionPublisher<>();
+        submissionPublisher.subscribe(subscriber);
+        final ByteBuffer endBuffer = copy2(allBytes, allBytes.length);
+        submissionPublisher.submit(endBuffer);
+        submissionPublisher.close();
     }
 
     ByteBuffer copy2(byte[] content, int length) {
@@ -107,25 +111,6 @@ public class MultiFileBodyProvider implements HttpRequest.BodyPublisher{
         buffs.add(b);
         return buffs;
     }
-
-    public long fileSize(){
-        return paths.stream()
-                .mapToLong(path -> {
-                    try {
-                        return Files.size(path);
-                    } catch (IOException e) {
-                        return 0;
-                    }
-                })
-                .sum();
-    }
-
-
-    // 生成一个随机的boundary字符串
-    private static String boundaryString() {
-        return "----Boundary" + System.currentTimeMillis();
-    }
-
 
 
 }

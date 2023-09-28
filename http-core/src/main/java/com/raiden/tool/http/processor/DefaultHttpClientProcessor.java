@@ -92,11 +92,18 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
 
 
     private HttpRequest handlerFile(Object bodyObject, Map<String, String> headMap, String url, MultipartData multipartData) {
+        final String boundaryString = boundaryString();
         final HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(url));
         headMap.forEach(builder::header);
-        HttpRequest.BodyPublisher requestBody = new MultiFileBodyProvider(multipartData, bodyObject);
+        builder.header("Content-Type", "multipart/form-data; boundary=" + boundaryString);
+        HttpRequest.BodyPublisher requestBody = new MultiFileBodyProvider(multipartData, bodyObject, boundaryString);
         builder.POST(requestBody);
         return builder.build();
+    }
+
+    // 生成一个随机的boundary字符串
+    private static String boundaryString() {
+        return "Boundary" + System.currentTimeMillis();
     }
 
     private Object convert(Class<?> returnType, HttpRequest httpRequest, Type typeArgument, HttpClientInterceptor interceptor, HttpClient httpClient) throws IOException, InterruptedException {
