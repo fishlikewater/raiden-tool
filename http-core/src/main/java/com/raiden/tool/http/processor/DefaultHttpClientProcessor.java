@@ -118,13 +118,14 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         }
         if (returnType.isAssignableFrom(CompletableFuture.class)) {
             //异步
-            if (typeArgument.getClass().isAssignableFrom(String.class) || typeArgument.getClass().isAssignableFrom(Number.class)) {
+            final Class<?> typeArgumentClass = TypeUtil.getClass(typeArgument);
+            if (typeArgumentClass.isAssignableFrom(String.class) || typeArgumentClass.isAssignableFrom(Number.class)) {
                 return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(res -> requestAfter(res, interceptor).body());
             }
-            if (typeArgument.getClass().isAssignableFrom(byte[].class)) {
+            if (typeArgumentClass.isAssignableFrom(byte[].class)) {
                 return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenApply(res -> requestAfter(res, interceptor).body());
             }
-            if (returnType.isAssignableFrom(Path.class)){
+            if (typeArgumentClass.isAssignableFrom(Path.class)){
                 final Path path = multipartData.getPath();
                 Assert.notNull(path, "请传入文件保存路径");
                 if (path.toFile().isDirectory()){
@@ -133,7 +134,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
                     httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofFile(path, multipartData.getOpenOptions())).thenApply(res -> requestAfter(res, interceptor).body());
                 }
             }
-            return httpClient.sendAsync(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), TypeUtil.getClass(typeArgument))).thenApply(res -> requestAfter(res, interceptor).body());
+            return httpClient.sendAsync(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), typeArgumentClass)).thenApply(res -> requestAfter(res, interceptor).body());
 
         } else {
             //同步
