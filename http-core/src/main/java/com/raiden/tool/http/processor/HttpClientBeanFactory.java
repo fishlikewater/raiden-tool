@@ -1,5 +1,6 @@
 package com.raiden.tool.http.processor;
 
+import com.raiden.tool.http.MethodArgsBean;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 
 import java.lang.reflect.Method;

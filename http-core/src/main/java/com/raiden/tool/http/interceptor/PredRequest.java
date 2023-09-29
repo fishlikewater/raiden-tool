@@ -1,6 +1,6 @@
 package com.raiden.tool.http.interceptor;
 
-import com.raiden.tool.http.processor.MethodArgsBean;
+import com.raiden.tool.http.MethodArgsBean;
 
 /**
  * 请求之前处理

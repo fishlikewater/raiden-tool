@@ -1,4 +1,4 @@
-package com.raiden.tool.http.processor;
+package com.raiden.tool.http;
 
 import com.raiden.tool.http.enums.HttpMethod;
 import lombok.AllArgsConstructor;

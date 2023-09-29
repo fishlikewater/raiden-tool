@@ -1,6 +1,7 @@
-package com.raiden.tool.http.log;
+package com.raiden.tool.http.interceptor;
 
 import com.raiden.tool.http.HttpBootStrap;
+import com.raiden.tool.http.LogConfig;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 import com.raiden.tool.http.uttils.ByteBufferUtils;
 import lombok.extern.slf4j.Slf4j;

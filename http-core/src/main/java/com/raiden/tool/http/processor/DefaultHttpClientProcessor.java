@@ -1,13 +1,14 @@
 package com.raiden.tool.http.processor;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.TypeUtil;
 import cn.hutool.json.JSONUtil;
 import com.raiden.tool.http.HttpBootStrap;
+import com.raiden.tool.http.MultipartData;
 import com.raiden.tool.http.enums.HttpMethod;
-import com.raiden.tool.http.file.MultipartData;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
-import com.raiden.tool.http.log.LogInterceptor;
+import com.raiden.tool.http.interceptor.LogInterceptor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,6 +20,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -39,12 +41,12 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         if (method == HttpMethod.GET || method == HttpMethod.DELETE) {
             final HttpRequest.Builder builder = HttpRequest.newBuilder().GET().uri(URI.create(getRequestUrl(url, paramMap)));
             headMap.forEach(builder::header);
-            return convert(returnType, builder.build(), typeArgument, interceptor, httpClient);
+            return convert(returnType, builder.build(), typeArgument, interceptor, multipartData, httpClient);
         }
         if (method == HttpMethod.POST || method == HttpMethod.PUT) {
             if (form) {
                 final HttpRequest httpRequest = handlerForm(bodyObject, headMap, url);
-                return convert(returnType, httpRequest, typeArgument, interceptor, httpClient);
+                return convert(returnType, httpRequest, typeArgument, interceptor, multipartData, httpClient);
             }else {
                 final HttpRequest httpRequest;
                 if (Objects.nonNull(multipartData)){
@@ -52,7 +54,7 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
                 }else {
                     httpRequest = handlerJson(bodyObject, headMap, url);
                 }
-                return convert(returnType, httpRequest, typeArgument, interceptor, httpClient);
+                return convert(returnType, httpRequest, typeArgument, interceptor, multipartData, httpClient);
             }
         }
         return "";
@@ -106,7 +108,8 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         return "Boundary" + System.currentTimeMillis();
     }
 
-    private Object convert(Class<?> returnType, HttpRequest httpRequest, Type typeArgument, HttpClientInterceptor interceptor, HttpClient httpClient) throws IOException, InterruptedException {
+    private Object convert(Class<?> returnType, HttpRequest httpRequest, Type typeArgument, HttpClientInterceptor interceptor,
+                           MultipartData multipartData, HttpClient httpClient) throws IOException, InterruptedException {
         if (Objects.nonNull(interceptor)) {
             httpRequest = interceptor.requestBefore(httpRequest);
         }
@@ -115,18 +118,38 @@ public class DefaultHttpClientProcessor implements HttpClientProcessor {
         }
         if (returnType.isAssignableFrom(CompletableFuture.class)) {
             //异步
-            if (typeArgument.getClass().isAssignableFrom(String.class)) {
+            if (typeArgument.getClass().isAssignableFrom(String.class) || typeArgument.getClass().isAssignableFrom(Number.class)) {
                 return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenApply(res -> requestAfter(res, interceptor).body());
             }
             if (typeArgument.getClass().isAssignableFrom(byte[].class)) {
                 return httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray()).thenApply(res -> requestAfter(res, interceptor).body());
             }
+            if (returnType.isAssignableFrom(Path.class)){
+                final Path path = multipartData.getPath();
+                Assert.notNull(path, "请传入文件保存路径");
+                if (path.toFile().isDirectory()){
+                    httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofFileDownload(path, multipartData.getOpenOptions())).thenApply(res -> requestAfter(res, interceptor).body());
+                }else {
+                    httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofFile(path, multipartData.getOpenOptions())).thenApply(res -> requestAfter(res, interceptor).body());
+                }
+            }
             return httpClient.sendAsync(httpRequest, (responseInfo) -> new ResponseJsonHandlerSubscriber<>(responseInfo.headers(), TypeUtil.getClass(typeArgument))).thenApply(res -> requestAfter(res, interceptor).body());
 
         } else {
             //同步
-            if (returnType.isAssignableFrom(String.class)) {
+            if (returnType.isAssignableFrom(String.class) || returnType.isAssignableFrom(Number.class)) {
                 final HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                return requestAfter(response, interceptor).body();
+            }
+            if (returnType.isAssignableFrom(Path.class)){
+                final Path path = multipartData.getPath();
+                Assert.notNull(path, "请传入文件保存路径");
+                HttpResponse<Path> response;
+                if (path.toFile().isDirectory()){
+                    response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofFileDownload(path, multipartData.getOpenOptions()));
+                }else {
+                    response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofFile(path, multipartData.getOpenOptions()));
+                }
                 return requestAfter(response, interceptor).body();
             }
             if (returnType.isAssignableFrom(byte[].class)) {

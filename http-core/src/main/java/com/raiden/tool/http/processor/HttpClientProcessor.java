@@ -2,7 +2,7 @@ package com.raiden.tool.http.processor;
 
 
 import com.raiden.tool.http.enums.HttpMethod;
-import com.raiden.tool.http.file.MultipartData;
+import com.raiden.tool.http.MultipartData;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 
 import java.lang.reflect.Type;

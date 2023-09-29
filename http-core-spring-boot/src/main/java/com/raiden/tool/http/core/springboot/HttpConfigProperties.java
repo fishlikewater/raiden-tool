@@ -1,7 +1,7 @@
 package com.raiden.tool.http.core.springboot;
 
 import com.raiden.tool.http.enums.ProxyEnum;
-import com.raiden.tool.http.log.LogConfig;
+import com.raiden.tool.http.LogConfig;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

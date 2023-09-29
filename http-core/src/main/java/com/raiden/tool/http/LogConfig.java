@@ -1,4 +1,4 @@
-package com.raiden.tool.http.log;
+package com.raiden.tool.http;
 
 import lombok.Data;
 import lombok.experimental.Accessors;

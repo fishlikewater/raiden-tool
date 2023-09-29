@@ -3,7 +3,7 @@ package com.raiden.tool.http.processor;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileReader;
-import com.raiden.tool.http.file.MultipartData;
+import com.raiden.tool.http.MultipartData;
 
 import java.io.File;
 import java.net.http.HttpRequest;

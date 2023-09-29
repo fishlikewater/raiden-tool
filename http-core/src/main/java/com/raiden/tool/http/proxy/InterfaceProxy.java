@@ -8,11 +8,11 @@ import com.raiden.tool.http.annotation.Body;
 import com.raiden.tool.http.annotation.Param;
 import com.raiden.tool.http.annotation.PathParam;
 import com.raiden.tool.http.enums.HttpMethod;
-import com.raiden.tool.http.file.MultipartData;
+import com.raiden.tool.http.MultipartData;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 import com.raiden.tool.http.processor.HttpClientBeanFactory;
 import com.raiden.tool.http.processor.HttpClientProcessor;
-import com.raiden.tool.http.processor.MethodArgsBean;
+import com.raiden.tool.http.MethodArgsBean;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;

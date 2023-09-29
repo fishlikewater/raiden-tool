@@ -4,7 +4,6 @@ import cn.hutool.core.lang.Assert;
 import com.raiden.tool.http.annotation.HttpServer;
 import com.raiden.tool.http.interceptor.HttpClientInterceptor;
 import com.raiden.tool.http.interceptor.PredRequest;
-import com.raiden.tool.http.log.LogConfig;
 import com.raiden.tool.http.processor.DefaultHttpClientBeanFactory;
 import com.raiden.tool.http.processor.DefaultHttpClientProcessor;
 import com.raiden.tool.http.processor.HttpClientBeanFactory;
