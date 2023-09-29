@@ -1,14 +1,20 @@
 package httptest;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.io.file.FileMode;
 import com.raiden.tool.http.HttpBootStrap;
 import httptest.enitty.LoginBo;
 import httptest.enitty.LoginEntity;
 import httptest.enitty.ResponseEntity;
 import httptest.remote.HttpTest;
 import httptest.remote.JsonTest;
+import httptest.remote.TestRemote;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.http.HttpClient;
 
 /**
@@ -26,7 +32,7 @@ public class DemoTest {
     public void before() throws ClassNotFoundException {
         HttpBootStrap.setSelfManager(true);
         HttpBootStrap.init("httptest.remote");
-        HttpBootStrap.registerHttpClient("third", HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build());
+        HttpBootStrap.registerHttpClient("third", HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build());
         HttpBootStrap.getLogConfig().setEnableLog(true);
 
     }
@@ -54,5 +60,21 @@ public class DemoTest {
         System.out.println(login.getResult());
     }
 
+
+    @Test
+    public void testFile() throws InterruptedException {
+        HttpBootStrap.getProxy(TestRemote.class).download2().thenAccept(bytes -> {
+            try {
+                final File file = FileUtil.file("E:\\opt\\2.png");
+                file.createNewFile();
+                final RandomAccessFile randomAccessFile = FileUtil.createRandomAccessFile(file, FileMode.rw);
+                randomAccessFile.write(bytes);
+                randomAccessFile.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        Thread.sleep(10*1000);
+    }
 
 }
