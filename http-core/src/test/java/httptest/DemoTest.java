@@ -52,6 +52,22 @@ public class DemoTest {
     }
 
     @Test
+    public void test2() {
+        final long t1 = System.currentTimeMillis();
+        HttpBootStrap.getProxy(HttpTest.class).test1("1");
+        final long t2 = System.currentTimeMillis();
+        System.out.println(t2-t1);
+    }
+
+    @Test
+    public void test3() {
+        final long t1 = System.currentTimeMillis();
+        HttpBootStrap.getProxy(HttpTest.class).test2("1");
+        final long t2 = System.currentTimeMillis();
+        System.out.println(t2-t1);
+    }
+
+    @Test
     public void testJson(){
         final LoginBo loginBo = new LoginBo();
         loginBo.setCode("111111");

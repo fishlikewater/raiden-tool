@@ -1,8 +1,6 @@
 package httptest.remote;
 
-import com.raiden.tool.http.annotation.HttpServer;
-import com.raiden.tool.http.annotation.Interceptor;
-import com.raiden.tool.http.annotation.RequireLine;
+import com.raiden.tool.http.annotation.*;
 import httptest.MyInterceptor;
 
 /**
@@ -19,6 +17,12 @@ public interface HttpTest {
 
     @RequireLine(path = "/")
     String test();
+
+    @GET("/{id}")
+    String test1(@PathParam("id")String id);
+
+    @GET("/")
+    String test2(@Param("id")String id);
 
 
 
