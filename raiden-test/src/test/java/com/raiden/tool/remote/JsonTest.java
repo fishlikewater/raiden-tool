@@ -1,12 +1,13 @@
-package httptest.remote;
+package com.raiden.tool.remote;
 
+import com.raiden.tool.enitty.LoginBo;
+import com.raiden.tool.enitty.LoginEntity;
+import com.raiden.tool.enitty.ResponseEntity;
 import com.raiden.tool.http.annotation.Body;
 import com.raiden.tool.http.annotation.HttpServer;
 import com.raiden.tool.http.annotation.RequireLine;
 import com.raiden.tool.http.enums.HttpMethod;
-import httptest.enitty.LoginBo;
-import httptest.enitty.LoginEntity;
-import httptest.enitty.ResponseEntity;
+
 
 /**
  * json测试

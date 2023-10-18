@@ -1,7 +1,8 @@
-package httptest.remote;
+package com.raiden.tool.remote;
 
+import com.raiden.tool.MyInterceptor;
 import com.raiden.tool.http.annotation.*;
-import httptest.MyInterceptor;
+
 
 /**
  * <p>

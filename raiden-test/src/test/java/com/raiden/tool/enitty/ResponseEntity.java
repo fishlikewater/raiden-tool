@@ -1,4 +1,4 @@
-package httptest.enitty;
+package com.raiden.tool.enitty;
 
 
 import lombok.Data;

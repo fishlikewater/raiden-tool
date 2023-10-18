@@ -1,14 +1,14 @@
-package httptest;
+package com.raiden.tool;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.file.FileMode;
+import com.raiden.tool.enitty.LoginBo;
+import com.raiden.tool.enitty.LoginEntity;
+import com.raiden.tool.enitty.ResponseEntity;
 import com.raiden.tool.http.HttpBootStrap;
-import httptest.enitty.LoginBo;
-import httptest.enitty.LoginEntity;
-import httptest.enitty.ResponseEntity;
-import httptest.remote.HttpTest;
-import httptest.remote.JsonTest;
-import httptest.remote.TestRemote;
+import com.raiden.tool.remote.HttpTest;
+import com.raiden.tool.remote.JsonTest;
+import com.raiden.tool.remote.TestRemote;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ public class DemoTest {
     @Before
     public void before() throws ClassNotFoundException {
         HttpBootStrap.setSelfManager(true);
-        HttpBootStrap.init("httptest.remote");
+        HttpBootStrap.init("com.raiden.tool.remote");
         HttpBootStrap.registerHttpClient("third", HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build());
         HttpBootStrap.getLogConfig().setEnableLog(true);
 

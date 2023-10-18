@@ -1,4 +1,4 @@
-package httptest.remote;
+package com.raiden.tool.remote;
 
 import com.raiden.tool.http.MultipartData;
 import com.raiden.tool.http.annotation.GET;

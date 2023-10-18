@@ -13,6 +13,7 @@
         <module>http-core-spring-boot</module>
         <module>raiden-core</module>
         <module>raiden-annotation</module>
+        <module>raiden-test</module>
     </modules>
 
     <properties>

@@ -36,20 +36,6 @@
             <artifactId>cglib</artifactId>
             <version>${cglib.veresion}</version>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-            <scope>test</scope>
-            <optional>true</optional>
-        </dependency>
     </dependencies>
 
     <build>
